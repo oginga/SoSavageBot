@@ -1,3 +1,5 @@
+redis
+hiredis
 tweepy
 django
 requests
