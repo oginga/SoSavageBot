@@ -175,6 +175,9 @@ if __name__ == "__main__":
             # store(mentions) #pickle data to avoid rate limits during dev
         logger.info("Fetched mentions")
         process_mentions(mentions)
+        # Do all tasks once instead of creating different cron tabs
+        retweet(api)
+        send_replies(api)        
     elif args.retweet:
         retweet(api)
     elif args.message:
