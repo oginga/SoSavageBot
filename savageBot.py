@@ -19,8 +19,6 @@ ACCESS_TOKEN=os.getenv("SAV_ACCESS_TOKEN")
 ACCESS_TOKEN_SECRET=os.getenv("SAV_ACCESS_TOKEN_SECRET")
 DEBUG=bool(os.environ.get("SAV_BOT_DEBUG",False))
 
-DEBUG=True
-
 
 def store(data):
     with open('pickled','wb') as f:
@@ -139,7 +137,7 @@ def send_replies(api):
     reply_ids=conn.smembers('sav:replies') #List of tuples
     for r_id in reply_ids:
         reply=conn.hgetall(f'sav:replies:{r_id}')
-        if reply['msg']:
+        if reply['msg'] and int(reply['sent'])==0:#message not yet sent
             # send message
             api.update_status(status = reply['msg'], in_reply_to_status_id = r_id , auto_populate_reply_metadata=True)
             # Update message to sent
