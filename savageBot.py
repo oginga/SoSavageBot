@@ -17,7 +17,7 @@ API_KEY=os.getenv("SAV_API_KEY")
 API_SECRET_KEY=os.getenv("SAV_API_SECRET_KEY")
 ACCESS_TOKEN=os.getenv("SAV_ACCESS_TOKEN")
 ACCESS_TOKEN_SECRET=os.getenv("SAV_ACCESS_TOKEN_SECRET")
-DEBUG=bool(os.environ.get("SAV_BOT_DEBUG",False))
+DEBUG=os.environ.get("SAV_BOT_DEBUG",False)
 
 
 def store(data):
