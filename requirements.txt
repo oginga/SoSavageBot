@@ -1,0 +1,5 @@
+tweepy
+django
+requests
+gunicorn
+virtualenvwrapper

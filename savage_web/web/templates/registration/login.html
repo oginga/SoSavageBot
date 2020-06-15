@@ -1,0 +1,245 @@
+{% load staticfiles%}
+{% load tz %}
+
+<!DOCTYPE html>
+<html>
+<head>
+	<title>OnTheFly</title>
+	<link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <meta charset="utf-8">
+    <meta name="description" content="Sosavage bot" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
+  	
+    <!-- <link rel="icon" href="{% static 'fifa/images/logo.png' %}"> -->
+    <!-- <link rel="stylesheet" type="text/css" href="{% static 'fifa/css/bootstrap.min.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'fifa/css/style.css' %}"> -->
+    
+    <style type="text/css">
+    	body {
+		    background-color:   #1a1a1a;
+		    color: #1aff1a;
+		  }
+
+		tbody{
+		  padding: 20px 15px;
+		  text-align: center;
+		  font-weight: 500;
+		  font-size: 14px;	  
+		}
+		thead{
+		  padding: 15px;
+		  text-align: left;
+		  vertical-align:middle;
+		  font-weight: 400;
+		  font-size: 14px;
+		  color: rgba(85, 85, 85, 1);
+		  border-bottom: solid 1px rgba(255,255,255,0.1);
+		}
+		.jumbotron{
+			background-color:   #1a1a1a;
+		    padding: 0.5em 0.6em;
+		    font-size: 1.0em;
+		    
+		    
+		}
+		/*
+		Code snippet by maridlcrmn for Bootsnipp.com
+		Follow me on Twitter @maridlcrmn
+		*/
+
+		.navbar-brand { position: relative; z-index: 2; }
+
+		.navbar-nav.navbar-right .btn { position: relative; z-index: 2; padding: 4px 20px; margin: 10px auto; }
+
+		.navbar .navbar-collapse { position: relative; }
+		.navbar .navbar-collapse .navbar-right > li:last-child { padding-left: 22px; }
+
+		.navbar .nav-collapse { position: absolute; z-index: 1; top: 0; left: 0; right: 0; bottom: 0; margin: 0; padding-right: 120px; padding-left: 80px; width: 100%; }
+		.navbar.navbar-default .nav-collapse { background-color: #f8f8f8; }
+		.navbar.navbar-inverse .nav-collapse { background-color: #222; }
+		.navbar .nav-collapse .navbar-form { border-width: 0; box-shadow: none; }
+		.nav-collapse>li { float: right; }
+
+		.btn.btn-circle { border-radius: 50px; }
+		.btn.btn-outline { background-color: transparent; }
+
+		@media screen and (max-width: 767px) {
+		    .navbar .navbar-collapse .navbar-right > li:last-child { padding-left: 15px; padding-right: 15px; } 
+		    
+		    .navbar .nav-collapse { margin: 7.5px auto; padding: 0; }
+		    .navbar .nav-collapse .navbar-form { margin: 0; }
+		    .nav-collapse>li { float: none; }
+		}
+    
+
+    </style>
+
+</head>
+
+<body >
+	<div class="container-fluid">
+		<div class="row">
+    		<div class="col col-xs-2">
+    	    
+    		</div>
+    		<div class="col col-md-8">
+
+    		<nav class="navbar navbar-inverse">
+    			<div class="navbar-header">
+    				<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#colaps" aria-expanded="false">
+				        <span class="sr-only">Toggle navigation</span>
+				        <span class="icon-bar"></span>
+				        <span class="icon-bar"></span>
+				        <span class="icon-bar"></span>
+				    </button>
+				    <a class="navbar-brand">SoSavageBot</a>
+    			</div>
+
+    			<div class="collapse navbar-collapse " id="colaps">
+        
+
+                <ul class="nav navbar-nav ">
+                    <li><a href="/dashboard">Home</a>
+                    </li>
+
+                </ul>
+                   {% if user.is_authenticated %}
+                <ul class="nav navbar-nav navbar-right">
+                        <li><a href="/accounts/profile">{{user.username}}</a></li>
+          				<li><a href="/auth/logout">logout</a></li>
+          		</ul>
+          
+              		        {%else%}
+              		<ul class="nav navbar-nav navbar-right">
+                        <li><a href="/auth/login">Log In</a></li>
+                        <li><a href="/registration">Sign Up</a></li>
+          			</ul>
+                        
+                            {%endif%}
+                </ul>
+                    
+            </div>
+
+    		</nav>
+
+    </div>
+    
+    <div class="row img-rounded " id='content' >
+        <!-- {%block content%} -->
+        
+        <!-- <div class="row">
+            <div class="col-md-4">
+                <a class="btn btn-default" onClick="javascript:history.go(-1);"><span class="glyphicon glyphicon-arrow-left"></span>Back</a>
+            </div>
+            
+        </div> -->
+        <div class="row">
+        <div class="col-md-4"></div>
+        <div class="col-md-4">
+        {% if login.errors %}
+            <p>Your username and password didn't match. Please try again.</p>
+        {% endif %}
+        
+        {% if next %}
+            {% if user.is_authenticated %}
+                <p>Your account doesn't have access to this page. To proceed,please login with an account that has access.</p>
+        {% else %}
+        
+        <p>Please login to see this page.</p>
+        {% endif %}
+        {% endif %}
+        
+        
+        <form  method="post" action="/login"> {% csrf_token %}
+             {{form}}
+        <input class="btn btn-md btn-primary" type="submit" value="Login" />
+        <input type="hidden" name="next" value="/dashboard" />
+        </form>
+            {# Assumes you setup the password_reset view in your URLconf #}
+        <!-- <p><a  href="/password_reset/">Forgot password?</a></p>
+        <p><a class="btn btn-md btn-primary" href="/registration">Sign Up</a></p> -->
+        </div>
+        <div class="col-md-4">
+        </div>
+        </div>
+
+    	<!-- {%endblock%} -->
+    </div>
+
+    </div>
+
+    <div class="col col-xs-2">
+    	    
+    </div>
+    
+    </div>
+
+     <div class="row">
+    	<div class="col col-xs-2">
+    	    
+    </div>
+    <div class="col col-xs-8">
+    	<div class="row"> <hr/> </div>
+    	{%block footer%}
+    
+    <div class="row">
+    	<footer class="footer-distributed">
+			<div class="row">
+			<div class="col-md-2">
+				
+		      		
+		    </div>
+			
+			<div class="col-md-8">
+			<div class="row">
+			<div class="col-md-4"></div>
+			<div class="col-md-4">
+				
+
+				<div>
+							<i class="fa fa-envelope"></i>
+					
+				</div>
+				<div class="footer-icons">
+
+
+				</div>
+
+
+			</div>
+			<div class="col-md-4"></div>
+			</div>	 
+						
+		    </div>
+
+			<div class="col-md-2">
+				
+			</div>
+			</div>
+
+
+	</footer>
+	</div>
+	{%endblock%}
+    	    
+    </div>
+    <div class="col col-xs-2">
+    	    
+    </div>
+
+
+    </div>
+    </div>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+<script type="text/javascript" src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+<!-- <script src="{% static "fifa/js/jquery.min.js" %}"></script>
+<script src="{% static "fifa/js/bootstrap.min.js" %}"></script>
+<script src="{% static "fifa/js/scripts.js" %}"></script> -->
+{% block js %}
+    
+{% endblock %}
+
+
+</body>
+</html>
+
