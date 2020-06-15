@@ -17,7 +17,7 @@ API_KEY=os.getenv("SAV_API_KEY")
 API_SECRET_KEY=os.getenv("SAV_API_SECRET_KEY")
 ACCESS_TOKEN=os.getenv("SAV_ACCESS_TOKEN")
 ACCESS_TOKEN_SECRET=os.getenv("SAV_ACCESS_TOKEN_SECRET")
-DEBUG=os.getenv("SAV_BOT_DEBUG")
+DEBUG=bool(os.environ.get("SAV_BOT_DEBUG",False))
 
 DEBUG=True
 
@@ -38,7 +38,6 @@ def load_messages():
 
 
 def get_api():
-    print(API_KEY,API_SECRET_KEY)
     auth = tweepy.OAuthHandler(API_KEY, API_SECRET_KEY)
     auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
     # api = tweepy.API(auth)
@@ -173,7 +172,7 @@ if __name__ == "__main__":
             mentions=retreive()
         else:
             mentions=get_mentions(api)
-            store(mentions) #pickle data to avoid rate limits during dev
+            # store(mentions) #pickle data to avoid rate limits during dev
         logger.info("Fetched mentions")
         process_mentions(mentions)
     elif args.retweet:
