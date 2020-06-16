@@ -17,7 +17,7 @@ API_KEY=os.getenv("SAV_API_KEY")
 API_SECRET_KEY=os.getenv("SAV_API_SECRET_KEY")
 ACCESS_TOKEN=os.getenv("SAV_ACCESS_TOKEN")
 ACCESS_TOKEN_SECRET=os.getenv("SAV_ACCESS_TOKEN_SECRET")
-DEBUG=os.environ.get("SAV_BOT_DEBUG",False)
+DEBUG=os.getenv("SAV_BOT_DEBUG")
 
 
 def store(data):
@@ -38,7 +38,6 @@ def load_messages():
 def get_api():
     auth = tweepy.OAuthHandler(API_KEY, API_SECRET_KEY)
     auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
-    # api = tweepy.API(auth)
     api = tweepy.API(auth, wait_on_rate_limit=True)
 
     return api
@@ -62,12 +61,10 @@ def get_mentions(api):
         mentions = api.mentions_timeline(since_id=last_mention_id)
     else:
         mentions = api.mentions_timeline()
-    mentions = api.mentions_timeline()
     return mentions
 
 def store_messages(mention_id,msg,pipeline):
         
-        print("\t",mention_id,msg)
         pipeline.sadd(f"sav:replies",mention_id)
         pipeline.hmset(f"sav:replies:{mention_id}",{'msg':msg,'sent':0})#TODO: add expiry 
 
@@ -100,7 +97,6 @@ def process_mentions(mentions):
     for mention in mentions:
         # Process mention if not already retweeted by bot or if mention is a reply
         if not mention.retweeted and mention.in_reply_to_status_id_str:
-            print(f"Entered if {mention.id}")
             store_authors(mention)
             store_mentions(mention)
             pipeline.set(f"sav:lastMention",mention.id)
@@ -125,10 +121,14 @@ def retweet(api):
         mention=conn.hgetall(f'sav:mentions:{m_id}')
         if int(mention['status'])== 0 :
             # retweet
-            api.retweet(mention['reply_id'])
-            store_messages(mention['id'],MESSAGES.get('shared',f"Hi {mention['mention_author_screen_name']},I shared the blunt :-D"),pipeline)
-            print(f"Retweeted tweet:{m_id} by {mention['link']}")
-            logger.info(f"Retweeted tweet:{m_id} by {mention['link']}")
+            try:
+                api.retweet(mention['reply_id'])
+                store_messages(mention['id'],MESSAGES.get('shared',f"Hi {mention['mention_author_screen_name']},I shared the blunt :-D"),pipeline)
+                print(f"Retweeted tweet:{m_id} by {mention['link']}")
+                logger.info(f"Retweeted tweet:{m_id} by {mention['link']}")
+            except Exception as e:
+                logger.error(f"Error encountered sending tweet: {e}")
+            
 
     pipeline.execute()
 
