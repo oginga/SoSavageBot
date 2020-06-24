@@ -24,7 +24,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = os.getenv('SAV_WEB_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = bool(os.environ.get('SAV_WEB_DEBUG',True))
+DEBUG = bool(os.environ.get('SAV_WEB_DEBUG',False))
 HOST=os.environ.get('SAV_WEB_HOST',"*")
 
 ALLOWED_HOSTS = ['127.0.0.2','127.0.0.2:9000',HOST]

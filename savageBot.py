@@ -9,6 +9,13 @@ conn = redis.Redis(decode_responses=True) #decode to return results as strings i
 pipeline=conn.pipeline()
 
 logger = logging.getLogger('savagebot')
+hdlr = logging.FileHandler('logsavagebot.log')
+formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+hdlr.setFormatter(formatter)
+logger.addHandler(hdlr) 
+logger.setLevel(logging.DEBUG)
+
+logger.info("Fetched mentions")
 
 #---------------------
 MESSAGES={}
@@ -67,6 +74,7 @@ def store_messages(mention_id,msg,pipeline):
         
         pipeline.sadd(f"sav:replies",mention_id)
         pipeline.hmset(f"sav:replies:{mention_id}",{'msg':msg,'sent':0})#TODO: add expiry 
+        logger.info(f"Message {msg} stored for mention id {mention_id}")
 
 def process_mentions(mentions):
     
@@ -85,6 +93,7 @@ def process_mentions(mentions):
         pipeline.hmset(author_key,author_details)
         # Score savage reply autho
         pipeline.zadd(f"sav:authors:scores",{mention.in_reply_to_user_id:0})
+        logger.info(f"Stored author {str_check(mention.author.name)}")
 
     def store_mentions(mention):
         mention_id=mention.id
@@ -92,6 +101,7 @@ def process_mentions(mentions):
         mention_details={'reply_id':mention.in_reply_to_status_id,'reply_author_id':mention.in_reply_to_user_id,'mention_author_id':mention.author.id,'mention_author_screen_name':str_check(mention.author.screen_name),'link':link,'status':0}
         pipeline.zadd(f"sav:mentions",{mention_id:mention.created_at.timestamp()})
         pipeline.hmset(f"sav:mentions:{mention_id}",mention_details)
+        logger.info(f"Stored mention {mention_details}")
         
         
     for mention in mentions:
@@ -137,11 +147,11 @@ def send_replies(api):
     reply_ids=conn.smembers('sav:replies') #List of tuples
     for r_id in reply_ids:
         reply=conn.hgetall(f'sav:replies:{r_id}')
+        logger.info(f"Reply {reply['msg']} sent_status: {reply['sent']}")
         if reply['msg'] and int(reply['sent'])==0:#message not yet sent
             # send message
             api.update_status(status = reply['msg'], in_reply_to_status_id = r_id , auto_populate_reply_metadata=True)
             # Update message to sent
-
             pipeline.hset(f'sav:replies:{r_id}','sent',1)
             logger.info(f"Replied to mention {r_id}")
             print(f"Replied to mention {r_id}")
