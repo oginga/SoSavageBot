@@ -25,6 +25,7 @@ API_SECRET_KEY=os.getenv("SAV_API_SECRET_KEY")
 ACCESS_TOKEN=os.getenv("SAV_ACCESS_TOKEN")
 ACCESS_TOKEN_SECRET=os.getenv("SAV_ACCESS_TOKEN_SECRET")
 DEBUG=os.getenv("SAV_BOT_DEBUG")
+AUTO_RETWEET=os.getenv("SAV_BOT_RETWEET")
 
 
 def store(data):
@@ -70,13 +71,13 @@ def get_mentions(api):
         mentions = api.mentions_timeline()
     return mentions
 
-def store_messages(mention_id,msg,pipeline):
+def store_messages(mention_id,msg,pipeline,sent=0):
         
         pipeline.sadd(f"sav:replies",mention_id)
-        pipeline.hmset(f"sav:replies:{mention_id}",{'msg':msg,'sent':0})#TODO: add expiry 
+        pipeline.hmset(f"sav:replies:{mention_id}",{'msg':msg,'sent':sent})#TODO: add expiry 
         logger.info(f"Message {msg} stored for mention id {mention_id}")
 
-def process_mentions(mentions):
+def process_mentions(mentions,api):
     
     global pipeline
     global MESSAGES
@@ -98,7 +99,7 @@ def process_mentions(mentions):
     def store_mentions(mention):
         mention_id=mention.id
         link=f"https://twitter.com/{str_check(mention.author.screen_name)}/status/{mention_id}"
-        mention_details={'reply_id':mention.in_reply_to_status_id,'reply_author_id':mention.in_reply_to_user_id,'mention_author_id':mention.author.id,'mention_author_screen_name':str_check(mention.author.screen_name),'link':link,'status':0}
+        mention_details={'reply_id':mention.in_reply_to_status_id,'reply_author_id':mention.in_reply_to_user_id,'mention_author_id':mention.author.id,'mention_author_screen_name':str_check(mention.author.screen_name),'link':link,'status':0,'retweeted':0}
         pipeline.zadd(f"sav:mentions",{mention_id:mention.created_at.timestamp()})
         pipeline.hmset(f"sav:mentions:{mention_id}",mention_details)
         logger.info(f"Stored mention {mention_details}")
@@ -112,34 +113,50 @@ def process_mentions(mentions):
             pipeline.set(f"sav:lastMention",mention.id)
 
         else:# Queue for reply
-            msg=''
+            msg=MESSAGES.get('sorry',f"Hi {str_check(mention.author.screen_name)}, Sorry,I received an error processing this tweet")
             if mention.retweeted:
                 msg=MESSAGES.get('retweeted',f"Hi {str_check(mention.author.screen_name)}, I already retweeted this.Thanks.")
-            if not mention.in_reply_to_status_id_str:
+            elif not mention.in_reply_to_status_id_str:
                 msg=MESSAGES.get('not_reply',f"Hi {str_check(mention.author.screen_name)},I retweet mentions on reply tweets not parent tweets.Thanks")
-            store_messages(mention.id,msg,pipeline)
-
+            api.update_status(status = msg, in_reply_to_status_id = mention.id , auto_populate_reply_metadata=True)
+            logger.info(f"Replied to mention tweet:{mention.id}")
+            store_messages(mention.id,msg,pipeline,sent=1)
+    
         
         res=pipeline.execute()
         print(f"Finished executing {res}")
+    
 
 def retweet(api):
     global pipeline
     mention_ids=conn.zrange('sav:mentions', 0, -1, withscores=True) #List of tuples
+
+    def send_tweet_update_status(mention,msg,mode="Validated"):
+        try:
+            api.retweet(mention['reply_id'])
+            pipeline.hset(f'sav:mentions:{m_id}','retweeted',1)
+            logger.info(f"[{mode}] Retweeted tweet:{m_id} by {mention['link']}")
+            api.update_status(status = msg, in_reply_to_status_id = mention['id'] , auto_populate_reply_metadata=True)
+            logger.info(f"Replied to mention tweet:{m_id}")
+                
+        except Exception as e:
+            logger.error(f"Error encountered sending tweet: {e}")
+
     for m_id,_ in mention_ids:
         print(f"mid sav:mentions:{m_id}")
         mention=conn.hgetall(f'sav:mentions:{m_id}')
-        if int(mention['status'])== 0 :
+        msg=MESSAGES.get('shared',f"Hi {mention['mention_author_screen_name']},I shared the blunt :-D")
+        # AUTORETWEET if enabled
+        if AUTO_RETWEET and int(mention['retweeted'])== 0:
+            send_tweet_update_status(mention,msg,"Auto")
+            reply_author_id=conn.hget(f'sav:mentions:{m_id}','reply_author_id')
+            # Increase approved reply author's score
+            pipeline.zincrby(f"sav:authors:scores",reply_author_id,1)
+            # store_messages(mention['id'],msg,pipeline,sent=1)
+        elif int(mention['status'])== 1 and int(mention['retweeted'])== 0 : #Check retweet APPROVE status
             # retweet
-            try:
-                api.retweet(mention['reply_id'])
-                store_messages(mention['id'],MESSAGES.get('shared',f"Hi {mention['mention_author_screen_name']},I shared the blunt :-D"),pipeline)
-                print(f"Retweeted tweet:{m_id} by {mention['link']}")
-                logger.info(f"Retweeted tweet:{m_id} by {mention['link']}")
-            except Exception as e:
-                logger.error(f"Error encountered sending tweet: {e}")
+            send_tweet_update_status(mention,msg)
             
-
     pipeline.execute()
 
 def send_replies(api):
@@ -182,10 +199,10 @@ if __name__ == "__main__":
             mentions=get_mentions(api)
             # store(mentions) #pickle data to avoid rate limits during dev
         logger.info("Fetched mentions")
-        process_mentions(mentions)
+        process_mentions(mentions,api)
         # Do all tasks once instead of creating different cron tabs
         retweet(api)
-        send_replies(api)        
+        # send_replies(api)        
     elif args.retweet:
         retweet(api)
     elif args.message:

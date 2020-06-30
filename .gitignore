@@ -1,0 +1,9 @@
+*.env
+*.pyc
+*.sqlite3
+*.log
+*.txt
+!requirements.txt
+migrations/
+__pycache__/
+learns/
