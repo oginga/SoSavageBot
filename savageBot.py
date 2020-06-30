@@ -64,6 +64,7 @@ def get_mentions(api):
     '''
 
     last_mention_id=conn.get(f"sav:lastMention")
+    logger.info(f"Last mention befor fetch {last_mention_id}")
     mentions=[]
     if last_mention_id:
         mentions = api.mentions_timeline(since_id=last_mention_id)
@@ -104,13 +105,12 @@ def process_mentions(mentions,api):
         pipeline.hmset(f"sav:mentions:{mention_id}",mention_details)
         logger.info(f"Stored mention {mention_details}")
         
-        
     for mention in mentions:
         # Process mention if not already retweeted by bot or if mention is a reply
         if not mention.retweeted and mention.in_reply_to_status_id_str:
             store_authors(mention)
             store_mentions(mention)
-            pipeline.set(f"sav:lastMention",mention.id)
+            
 
         else:# Queue for reply
             msg=MESSAGES.get('sorry',f"Hi {str_check(mention.author.screen_name)}, Sorry,I received an error processing this tweet")
@@ -122,7 +122,7 @@ def process_mentions(mentions,api):
             logger.info(f"Replied to mention tweet:{mention.id}")
             store_messages(mention.id,msg,pipeline,sent=1)
     
-        
+        pipeline.set(f"sav:lastMention",mention.id)
         res=pipeline.execute()
         print(f"Finished executing {res}")
     
@@ -141,6 +141,7 @@ def retweet(api):
                 
         except Exception as e:
             logger.error(f"Error encountered sending tweet: {e}")
+            pipeline.hset(f'sav:mentions:{m_id}','retweeted',1)
 
     for m_id,_ in mention_ids:
         print(f"mid sav:mentions:{m_id}")
@@ -198,7 +199,10 @@ if __name__ == "__main__":
         else:
             mentions=get_mentions(api)
             # store(mentions) #pickle data to avoid rate limits during dev
-        logger.info("Fetched mentions")
+
+        mentions.reverse()
+        mentions_string=" | ".join([str(m.id) for m in mentions])
+        logger.info(f"Fetched mentions {mentions_string}")
         process_mentions(mentions,api)
         # Do all tasks once instead of creating different cron tabs
         retweet(api)
